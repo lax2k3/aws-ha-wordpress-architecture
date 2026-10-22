@@ -4,12 +4,12 @@ Enterprise-grade, fault-tolerant multi-tier web architecture deployed on AWS usi
 
 ## Overview
 
-This repository demonstrates a resilient, production-style WordPress deployment designed for high availability, fault tolerance, and horizontal scalability in a single AWS Region. The solution separates the stateless web tier from shared media storage and a managed relational database tier to eliminate single points of failure.
+This repository demonstrates a resilient, production-style WordPress deployment designed for high availability, fault tolerance, and horizontal scalability in a single AWS Region. The solution separates the web tier, storage layer, and database layer while maintaining a simplified deployment model suitable for enterprise workloads.
 
 ## Architecture Overview
 
 <p align="center">
-  <img src="docs/architecture-diagram.svg" alt="AWS HA WordPress architecture diagram" width="100%" />
+  <img src="docs/architecture-diagram.png" alt="AWS HA WordPress architecture diagram" width="100%" />
 </p>
 
 ### Key Architectural Tenets
@@ -43,8 +43,10 @@ This repository demonstrates a resilient, production-style WordPress deployment 
 ├── LICENSE
 ├── README.md
 ├── docs/
-│   ├── architecture-diagram.svg            # Architecture overview diagram
-│   └── wordpress-login.svg                 # Example login screen
+│   ├── architecture-diagram.png            # Architecture overview diagram
+│   ├── architecture-diagram.svg            # Architecture overview diagram (vector)
+│   ├── wordpress-login.png                 # Example login screen
+│   └── wordpress-login.svg                 # Example login screen (vector)
 ├── scripts/
 │   └── userdata.sh                         # Web server bootstrap and WordPress setup
 └── templates/
@@ -189,7 +191,7 @@ http://<ALB-DNS-NAME>/wp-login.php
 ```
 
 <p align="center">
-  <img src="docs/wordpress-login.svg" alt="WordPress login page in AWS HA deployment" width="75%" />
+  <img src="docs/wordpress-login.png" alt="WordPress login page in AWS HA deployment" width="75%" />
 </p>
 
 Log in using the `wpadmin` account and your administrator password to access the WordPress admin dashboard.
@@ -198,6 +200,6 @@ Log in using the `wpadmin` account and your administrator password to access the
 
 ## Summary
 
-This repository demonstrates how to design and deploy a resilient multi-tier WordPress architecture on AWS using VPC isolation, load-balanced stateless web servers, shared EFS storage, and an Aurora-based relational database tier with Multi-AZ failover.
+This repository demonstrates how to design and deploy a resilient multi-tier WordPress architecture on AWS using VPC isolation, load-balanced stateless web servers, shared EFS storage, and an Aurora MySQL database cluster.
 
 It is intentionally aligned with enterprise cloud architecture patterns for availability, scalability, and operational resilience.
