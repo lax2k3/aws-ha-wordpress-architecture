@@ -8,35 +8,9 @@ This architecture is designed for high availability, fault tolerance, and dynami
 
 ## Architecture Overview
 
-```text
-                                  Internet
-                                     │
-                                     ▼
-                        [ Internet Gateway (IGW) ]
-                                     │
-      ┌──────────────────────────────┴──────────────────────────────┐
-      │                                                             │
- [ Public Subnet 1 (AZ-a) ]                    [ Public Subnet 2 (AZ-b) ]
- ├── NAT Gateway 1                             ├── NAT Gateway 2
- └── Application Load Balancer (ALB) ──────────┴── Target Group (Port 80)
-                                     │
-      ┌──────────────────────────────┴──────────────────────────────┐
-      │                                                             │
- [ App Subnet 1 (AZ-a) ]                       [ App Subnet 2 (AZ-b) ]
- ├── EC2 (Auto Scaling Group)                  ├── EC2 (Auto Scaling Group)
- │    │                                                │
- │    └───► Mount Target (NFS: 2049) ◄─────────────────┘
- │                   │
- │           [ Amazon EFS (myWPEFS) ]
- │                   │
- └─────► MySQL (3306)┼ ◄───────────────────────────────┘
-                     │
-      ┌──────────────┴───────────────┐
-      │                              │
- [ DB Subnet 1 (AZ-a) ]         [ DB Subnet 2 (AZ-b) ]
- └── Amazon Aurora (Writer)     └── Amazon Aurora (Reader Replica)
-     (Active Read/Write)            (Multi-AZ Automated Failover)
-```
+<p align="center">
+  <img src="docs/architecture-diagram.png" alt="AWS HA WordPress architecture diagram" width="100%" />
+</p>
 
 ### Key Architectural Tenets
 
@@ -227,6 +201,10 @@ Open the following URL in a browser:
 http://<ALB-DNS-NAME>/wp-login.php
 ```
 
+<p align="center">
+  <img src="docs/wordpress-login.png" alt="WordPress login page in AWS HA deployment" width="100%" />
+</p>
+
 Log in using the `wpadmin` account and the administrator password to access the WordPress administrative dashboard.
 
 ---
@@ -234,7 +212,3 @@ Log in using the `wpadmin` account and the administrator password to access the 
 ## Summary
 
 This repository demonstrates how to design and deploy a resilient multi-tier WordPress architecture on AWS using VPC isolation, load-balanced stateless web servers, shared EFS storage, and an Aurora MySQL cluster with Multi-AZ failover. The solution is fully aligned with enterprise cloud architecture best practices for high availability, scalability, and operational resilience.
-
-
-
-
