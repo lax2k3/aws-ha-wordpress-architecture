@@ -1,0 +1,71 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'EC2 Launch Template for Auto Scaling Group with EFS and Aurora bootstrap'
+
+Parameters:
+  DBName:
+    Type: String
+    Default: WPDatabase
+  Databaseendpoint:
+    Type: String
+    Description: Writer endpoint of Aurora DB
+  DatabaseUserName:
+    Type: String
+    Default: admin
+  DatabasePassword:
+    Type: String
+    NoEcho: true
+  WordPressadminusername:
+    Type: String
+    Default: wpadmin
+  WordPressadminpassword:
+    Type: String
+    NoEcho: true
+  WordPressadminemailaddress:
+    Type: String
+    Default: admin@example.com
+  InstanceType:
+    Type: String
+    Default: t3.medium
+  ALBDnsName:
+    Type: String
+  LatestAL2023AmiId:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64
+  WPElasticFileSystemID:
+    Type: String
+
+Resources:
+  LabLaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateName: LabLaunchTemplate
+      LaunchTemplateData:
+        ImageId: !Ref LatestAL2023AmiId
+        InstanceType: !Ref InstanceType
+        UserData:
+          Fn::Base64: !Sub |
+            #!/bin/bash
+            yum update -y
+            yum install -y httpd php php-mysqlnd php-gd php-xml php-mbstring amazon-efs-utils
+            systemctl start httpd
+            systemctl enable httpd
+            mkdir -p /var/www/html
+            mount -t efs -o tls ${WPElasticFileSystemID}:/ /var/www/html
+            echo "${WPElasticFileSystemID}:/ /var/www/html efs _netdev,tls 0 0" >> /etc/fstab
+            if [ ! -f /var/www/html/wp-config.php ]; then
+              cd /var/www/html
+              wget https://wordpress.org/latest.tar.gz
+              tar -xzf latest.tar.gz --strip-components=1
+              rm -f latest.tar.gz
+              cp wp-config-sample.php wp-config.php
+              sed -i "s/database_name_here/${DBName}/" wp-config.php
+              sed -i "s/username_here/${DatabaseUserName}/" wp-config.php
+              sed -i "s/password_here/${DatabasePassword}/" wp-config.php
+              sed -i "s/localhost/${Databaseendpoint}/" wp-config.php
+              chown -R apache:apache /var/www/html
+            fi
+            systemctl restart httpd
+
+Outputs:
+  LaunchTemplateId:
+    Value: !Ref LabLaunchTemplate

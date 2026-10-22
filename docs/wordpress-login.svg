@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="600" viewBox="0 0 1000 600">
+  <defs>
+    <style>
+      .title { font: 700 30px Arial, sans-serif; fill: #0f172a; }
+      .label { font: 600 22px Arial, sans-serif; fill: #0f172a; }
+      .small { font: 500 18px Arial, sans-serif; fill: #334155; }
+      .input { fill: #f8fafc; stroke: #94a3b8; stroke-width: 2; }
+      .button { fill: #2563eb; stroke: #1d4ed8; stroke-width: 2; }
+    </style>
+  </defs>
+
+  <rect width="1000" height="600" fill="#f8fafc"/>
+  <text x="500" y="70" text-anchor="middle" class="title">WordPress Login</text>
+
+  <rect x="300" y="130" width="400" height="260" rx="16" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+  <text x="500" y="185" text-anchor="middle" class="label">Sign In</text>
+
+  <rect x="350" y="220" width="300" height="42" rx="8" class="input"/>
+  <text x="370" y="248" class="small">Username</text>
+
+  <rect x="350" y="280" width="300" height="42" rx="8" class="input"/>
+  <text x="370" y="308" class="small">Password</text>
+
+  <rect x="350" y="345" width="300" height="46" rx="8" class="button"/>
+  <text x="500" y="376" text-anchor="middle" fill="#ffffff" style="font: 700 18px Arial, sans-serif;">Log In</text>
+
+  <text x="500" y="440" text-anchor="middle" class="small">AWS HA WordPress demo deployment</text>
+</svg>

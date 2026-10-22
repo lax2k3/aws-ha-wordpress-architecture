@@ -1,24 +1,24 @@
 # AWS HA WordPress Architecture
 
-Enterprise-grade, fault-tolerant multi-tier web architecture deployed on AWS using EC2 Auto Scaling, Application Load Balancer, Amazon EFS shared storage, and Amazon Aurora MySQL Multi-AZ clustering.
+Enterprise-grade, fault-tolerant multi-tier web architecture deployed on AWS using EC2 Auto Scaling, an Application Load Balancer, Amazon EFS shared storage, and an Amazon Aurora MySQL Multi-AZ cluster.
 
 ## Overview
 
-This architecture is designed for high availability, fault tolerance, and dynamic scalability in a single AWS Region. It separates the stateless web tier from shared media storage and a managed relational database cluster across multiple Availability Zones, eliminating common single points of failure.
+This repository demonstrates a resilient, production-style WordPress deployment designed for high availability, fault tolerance, and horizontal scalability in a single AWS Region. The solution separates the stateless web tier from shared media storage and a managed relational database tier to eliminate single points of failure.
 
 ## Architecture Overview
 
 <p align="center">
-  <img src="docs/architecture-diagram.png" alt="AWS HA WordPress architecture diagram" width="100%" />
+  <img src="docs/architecture-diagram.svg" alt="AWS HA WordPress architecture diagram" width="100%" />
 </p>
 
 ### Key Architectural Tenets
 
 - High Availability & Fault Tolerance: Multi-AZ deployment across compute, storage, and database layers.
-- Stateless Compute Layer: Amazon EC2 instances managed by an Auto Scaling Group (ASG) run behind an Application Load Balancer (ALB)[cite: 11, 16].
-- Decoupled Distributed Storage: Centralized Amazon Elastic File System (EFS) provides concurrent, multi-AZ NFS storage for application assets[cite: 11, 14, 16].
-- Managed Relational Database: Amazon Aurora MySQL-compatible cluster configured with an active Writer node and an automated failover Reader replica[cite: 11, 13, 16].
-- Defense-in-Depth Network Isolation: Public subnets host only the ALB and NAT gateways; application compute and databases are isolated in private subnets[cite: 11, 12, 16].
+- Stateless Compute Layer: Amazon EC2 instances managed by an Auto Scaling Group run behind an Application Load Balancer.
+- Decoupled Distributed Storage: Amazon EFS provides shared, multi-AZ NFS storage for application assets.
+- Managed Relational Database: Amazon Aurora MySQL-compatible cluster with a Writer node and automated failover Reader replica.
+- Defense-in-Depth Network Isolation: Public subnets host only the ALB and NAT gateways; application compute and databases remain in private subnets.
 
 ---
 
@@ -26,13 +26,13 @@ This architecture is designed for high availability, fault tolerance, and dynami
 
 | Service | Category | Function in Architecture |
 | :--- | :--- | :--- |
-| Amazon VPC | Networking | Custom network with 2 public, 2 private app, and 2 private DB subnets[cite: 11, 12, 16] |
-| AWS CloudFormation | IaC | Declarative templates for core network resources and launch templates |
-| Amazon Aurora (MySQL) | Database | Multi-AZ database cluster with primary Writer and standby Reader replica[cite: 11, 13, 16] |
-| Amazon EFS | Storage | Multi-AZ, POSIX-compliant shared file storage mounted via NFS[cite: 11, 14, 16] |
-| Application Load Balancer | Load Balancing | Layer 7 traffic routing, health checks, and connection distribution[cite: 11, 15, 16] |
-| EC2 Auto Scaling | Compute / Scaling | Dynamic horizontal scaling with Target Tracking on CPU utilization |
-| AWS Systems Manager | Management | Operational orchestration and automated configuration management |
+| Amazon VPC | Networking | Custom VPC with public, app, and DB subnets across multiple AZs |
+| AWS CloudFormation | IaC | Declarative infrastructure provisioning |
+| Amazon Aurora (MySQL) | Database | Multi-AZ database cluster with primary writer and reader replica |
+| Amazon EFS | Storage | Shared POSIX-compliant storage for WordPress assets |
+| Application Load Balancer | Load Balancing | Layer 7 traffic distribution and health checks |
+| EC2 Auto Scaling | Compute / Scaling | Dynamic horizontal scaling based on CPU utilization |
+| AWS Systems Manager | Management | OS and configuration management |
 
 ---
 
@@ -43,13 +43,13 @@ This architecture is designed for high availability, fault tolerance, and dynami
 ├── LICENSE
 ├── README.md
 ├── docs/
-│   ├── architecture-diagram.png            # Complete end-state multi-tier diagram
-│   └── wordpress-login.png                 # Validation screenshot of active deployment
+│   ├── architecture-diagram.svg            # Architecture overview diagram
+│   └── wordpress-login.svg                 # Example login screen
 ├── scripts/
-│   └── userdata.sh                         # Bootstrap script for Apache, EFS, and DB config
+│   └── userdata.sh                         # Web server bootstrap and WordPress setup
 └── templates/
     ├── 01-networking-infrastructure.yaml   # VPC, subnets, route tables, NAT gateways
-    └── 02-launch-template.yaml             # CloudFormation launch template specification
+    └── 02-launch-template.yaml             # EC2 launch template configuration
 ```
 
 ---
@@ -58,97 +58,102 @@ This architecture is designed for high availability, fault tolerance, and dynami
 
 ### Task 1: Network Foundation (CloudFormation)
 
-The underlying virtual network is provisioned across two Availability Zones (us-east-1a and us-east-1b)[cite: 12].
+Deploy `templates/01-networking-infrastructure.yaml` to create the VPC and network topology:
 
-Deploy `templates/01-networking-infrastructure.yaml` via CloudFormation to create:
+- Amazon VPC: `LabVPC`
+- Subnets: `PublicSubnet1`, `PublicSubnet2`, `AppSubnet1`, `AppSubnet2`, `DBSubnet1`, `DBSubnet2`
+- Internet Gateway and two NAT Gateways
+- Security groups for the ALB, EC2 instances, EFS mount targets, and Aurora access
 
-- Amazon VPC: `LabVPC`[cite: 12]
-- Subnets: `PublicSubnet1`, `PublicSubnet2`, `AppSubnet1`, `AppSubnet2`, `DBSubnet1`, and `DBSubnet2`[cite: 12]
-- Gateways & Routing: 1 Internet Gateway, 2 NAT Gateways (with dedicated Elastic IPs), and route tables isolating private traffic through NAT[cite: 12]
-- Security Groups: pre-configured security groups for ALB ingress, EC2 instance access, EFS mount points, and Aurora database communication
+### Task 2: Multi-AZ Aurora Database
 
-### Task 2: Multi-AZ Amazon Aurora Database
+Create an Amazon Aurora MySQL cluster:
 
-Deploy a fully managed, fault-tolerant relational database cluster:
-
-1. Navigate to Amazon RDS > Create database
-2. Creation Method: Standard create
-3. Engine: Aurora (MySQL Compatible), Template: Production
-4. Settings:
-   - DB cluster identifier: `MyDBCluster`
-   - Master username: `admin`
-   - Database name: `WPDatabase`
-   - Instance class: `db.t3.medium`
-   - Availability & Durability: create an Aurora Reader node in a different AZ for Multi-AZ deployment
-5. Connectivity:
-   - VPC: `LabVPC`
-   - Subnet group: `labdbsubnetgroup` (database subnets only)
-   - Public access: No
-   - VPC security group: attach `RDSSecurityGroup` and remove the default security group
-6. Record the generated Writer Endpoint when the cluster is available
+1. Open Amazon RDS > Create database
+2. Choose Aurora (MySQL Compatible)
+3. Set Cluster Identifier: `MyDBCluster`
+4. Set Master Username: `admin`
+5. Set Database Name: `WPDatabase`
+6. Select a `db.t3.medium` instance class
+7. Enable a Reader node in a different AZ
+8. Use VPC `LabVPC` and database subnets only
+9. Disable public access and attach `RDSSecurityGroup`
+10. Record the Writer Endpoint for later configuration
 
 ### Task 3: Amazon Elastic File System (EFS)
 
-Provision shared storage across both application subnets:
+Create the shared EFS file system:
 
-1. Navigate to EFS > Create file system > choose Customize
-2. General Configuration:
-   - Name: `myWPEFS`
-   - Performance Mode: General Purpose
-   - Throughput Mode: Bursting
-3. Network Access (LabVPC):
-   - AZ-a: Subnet `AppSubnet1` | Security Group: `EFSMountTargetSecurityGroup`[cite: 14]
-   - AZ-b: Subnet `AppSubnet2` | Security Group: `EFSMountTargetSecurityGroup`[cite: 14]
-4. Remove default security groups on the mount targets
-5. Save the generated File System ID (`fs-xxxxxxxx`)
+1. Go to Amazon EFS > Create file system
+2. Name the filesystem: `myWPEFS`
+3. Use General Purpose performance mode and Bursting throughput
+4. Add mount targets in `AppSubnet1` and `AppSubnet2`
+5. Attach `EFSMountTargetSecurityGroup`
+6. Record the resulting file system ID (`fs-xxxxxxxx`)
 
 ### Task 4: Application Load Balancer & Target Group
 
-Configure Layer 7 load balancing for incoming web requests:
+Configure the ALB and target group:
 
-- Target Group: `myWPTargetGroup`
-  - Target type: `Instances`[cite: 10, 16]
-  - Protocol/Port: `HTTP:80`[cite: 10, 16]
-  - VPC: `LabVPC`[cite: 10]
-  - Health Checks: Path `/wp-login.php`, Healthy threshold 2, Unhealthy threshold 10, Timeout 50s, Interval 60s[cite: 10]
-- Application Load Balancer: `myWPAppALB`
-  - Scheme: Internet-facing, IPv4[cite: 11, 15, 16]
-  - Subnets: `PublicSubnet1` and `PublicSubnet2`[cite: 11, 15, 16]
-  - Security Group: `AppInstanceSecurityGroup` (Port 80 Inbound)[cite: 15]
-  - Listener: Forward HTTP Port 80 to `myWPTargetGroup`[cite: 10]
-- Copy the ALB DNS name
+- Target group: `myWPTargetGroup`
+  - Target type: `Instances`
+  - Protocol/Port: `HTTP:80`
+  - VPC: `LabVPC`
+  - Health check path: `/wp-login.php`
+- ALB: `myWPAppALB`
+  - Internet-facing, IPv4
+  - Subnets: `PublicSubnet1` and `PublicSubnet2`
+  - Listener: Forward port 80 to `myWPTargetGroup`
+- Save the ALB DNS name
 
-### Task 5: Launch Template Configuration (CloudFormation)
+### Task 5: Launch Template Configuration
 
-Deploy `templates/02-launch-template.yaml` using CloudFormation to configure `LabLaunchTemplate`:
+Deploy `templates/02-launch-template.yaml` to configure the EC2 launch template. Supply:
 
-- DB Name: `WPDatabase`
-- Database Endpoint: Aurora Writer Endpoint
-- Database Username: `admin`
-- Instance Type: `t3.medium`
-- ALBDnsName: ALB DNS Name
-- WPElasticFileSystemID: EFS File System ID
+- `DBName`: `WPDatabase`
+- `Databaseendpoint`: Aurora Writer Endpoint
+- `DatabaseUserName`: `admin`
+- `DatabasePassword`: database password
+- `ALBDnsName`: ALB DNS name
+- `WPElasticFileSystemID`: EFS file system ID
 
-#### User Data Script (`scripts/userdata.sh`)
+### Task 6: EC2 Auto Scaling Group
+
+Create an Auto Scaling Group in EC2:
+
+- Name: `WP-ASG`
+- Launch template: `LabLaunchTemplate`
+- VPC: `LabVPC`
+- Subnets: `AppSubnet1` and `AppSubnet2`
+- Attach to the existing target group: `myWPTargetGroup`
+- Enable ELB health checks and CloudWatch metrics
+- Desired: `2`, Minimum: `2`, Maximum: `4`
+- Scaling policy: target tracking on average CPU utilization at `50%`
+
+---
+
+## User Data Script
+
+The bootstrap script used by the EC2 instances is located at `scripts/userdata.sh`.
 
 ```bash
 #!/bin/bash
 set -e
 
-# Update operating system and install dependencies
+# Update OS and install dependencies
 yum update -y
 yum install -y httpd php php-mysqlnd php-gd php-xml php-mbstring amazon-efs-utils
 
-# Enable and start Apache web server
+# Enable and start Apache
 systemctl start httpd
 systemctl enable httpd
 
-# Mount shared Amazon EFS volume
+# Mount Amazon EFS
 mkdir -p /var/www/html
 mount -t efs -o tls ${WPElasticFileSystemID}:/ /var/www/html
 echo "${WPElasticFileSystemID}:/ /var/www/html efs _netdev,tls 0 0" >> /etc/fstab
 
-# Retrieve and configure WordPress on shared storage
+# Install WordPress if not already configured
 if [ ! -f /var/www/html/wp-config.php ]; then
   cd /var/www/html
   wget https://wordpress.org/latest.tar.gz
@@ -167,31 +172,13 @@ fi
 systemctl restart httpd
 ```
 
-### Task 6: EC2 Auto Scaling Group & Scaling Policies
-
-In the EC2 Console, create an Auto Scaling Group:
-
-- Name: `WP-ASG`
-- Launch Template: `LabLaunchTemplate` (Version: Latest (2))
-- VPC & Subnets: `LabVPC` > `AppSubnet1` and `AppSubnet2`
-- Attach to existing load balancer target group: `myWPTargetGroup`[cite: 10, 16]
-- Enable Elastic Load Balancing health checks
-- Health check grace period: `300 seconds`
-- Enable group metrics collection in CloudWatch
-- Group sizing:
-  - Desired: `2`
-  - Minimum: `2`
-  - Maximum: `4`
-- Scaling policy: Target tracking based on average CPU utilization at `50%`[cite: 9]
-- Tags: Key `Name`, Value `wp-ha-app`[cite: 11, 16]
-
 ---
 
 ## Verification & Testing
 
 ### 1. Target Health Validation
 
-Navigate to EC2 > Target Groups > `myWPTargetGroup` > Targets tab[cite: 10, 16]. Both registered instances should pass health checks and display green checkmarks indicating a Healthy status[cite: 10].
+Open EC2 > Target Groups > `myWPTargetGroup` and confirm both instances are healthy.
 
 ### 2. Live Application Access
 
@@ -202,13 +189,15 @@ http://<ALB-DNS-NAME>/wp-login.php
 ```
 
 <p align="center">
-  <img src="docs/wordpress-login.png" alt="WordPress login page in AWS HA deployment" width="100%" />
+  <img src="docs/wordpress-login.svg" alt="WordPress login page in AWS HA deployment" width="75%" />
 </p>
 
-Log in using the `wpadmin` account and the administrator password to access the WordPress administrative dashboard.
+Log in using the `wpadmin` account and your administrator password to access the WordPress admin dashboard.
 
 ---
 
 ## Summary
 
-This repository demonstrates how to design and deploy a resilient multi-tier WordPress architecture on AWS using VPC isolation, load-balanced stateless web servers, shared EFS storage, and an Aurora MySQL cluster with Multi-AZ failover. The solution is fully aligned with enterprise cloud architecture best practices for high availability, scalability, and operational resilience.
+This repository demonstrates how to design and deploy a resilient multi-tier WordPress architecture on AWS using VPC isolation, load-balanced stateless web servers, shared EFS storage, and an Aurora-based relational database tier with Multi-AZ failover.
+
+It is intentionally aligned with enterprise cloud architecture patterns for availability, scalability, and operational resilience.

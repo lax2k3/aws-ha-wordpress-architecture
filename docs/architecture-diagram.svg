@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="700" viewBox="0 0 1200 700">
+  <defs>
+    <style>
+      .title { font: 700 28px Arial, sans-serif; fill: #0f172a; }
+      .label { font: 600 18px Arial, sans-serif; fill: #0f172a; }
+      .small { font: 500 14px Arial, sans-serif; fill: #334155; }
+      .box { fill: #e2e8f0; stroke: #475569; stroke-width: 2; }
+      .box2 { fill: #dbeafe; stroke: #2563eb; stroke-width: 2; }
+      .box3 { fill: #dcfce7; stroke: #16a34a; stroke-width: 2; }
+      .box4 { fill: #fef3c7; stroke: #d97706; stroke-width: 2; }
+      .arrow { stroke: #475569; stroke-width: 2.5; fill: none; marker-end: url(#arrowhead); }
+      .node { fill: #ffffff; stroke: #0f172a; stroke-width: 1.5; }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#475569" />
+    </marker>
+  </defs>
+
+  <text x="600" y="50" text-anchor="middle" class="title">AWS HA WordPress Architecture</text>
+
+  <rect x="50" y="90" width="1100" height="540" rx="16" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2"/>
+
+  <rect x="120" y="130" width="180" height="80" rx="10" class="box2"/>
+  <text x="210" y="168" text-anchor="middle" class="label">Internet</text>
+  <text x="210" y="190" text-anchor="middle" class="small">Client traffic</text>
+
+  <rect x="430" y="130" width="260" height="90" rx="10" class="box2"/>
+  <text x="560" y="165" text-anchor="middle" class="label">Application Load Balancer</text>
+  <text x="560" y="190" text-anchor="middle" class="small">Target Group / Port 80</text>
+
+  <rect x="760" y="130" width="220" height="90" rx="10" class="box3"/>
+  <text x="870" y="165" text-anchor="middle" class="label">Auto Scaling Group</text>
+  <text x="870" y="190" text-anchor="middle" class="small">EC2 Web Tier</text>
+
+  <rect x="760" y="280" width="250" height="110" rx="10" class="box4"/>
+  <text x="885" y="322" text-anchor="middle" class="label">Amazon EFS</text>
+  <text x="885" y="348" text-anchor="middle" class="small">Shared WordPress content</text>
+  <text x="885" y="368" text-anchor="middle" class="small">NFS / Mount targets</text>
+
+  <rect x="390" y="430" width="260" height="110" rx="10" class="box"/>
+  <text x="520" y="470" text-anchor="middle" class="label">Amazon Aurora</text>
+  <text x="520" y="495" text-anchor="middle" class="small">Writer + Reader Replica</text>
+  <text x="520" y="515" text-anchor="middle" class="small">Multi-AZ failover</text>
+
+  <path d="M300 170 L430 170" class="arrow"/>
+  <path d="M690 170 L760 170" class="arrow"/>
+  <path d="M870 220 L870 280" class="arrow"/>
+  <path d="M760 335 L650 335 L650 430" class="arrow"/>
+  <path d="M520 430 L520 335 L760 335" class="arrow"/>
+
+  <text x="350" y="150" class="small">public traffic</text>
+  <text x="715" y="150" class="small">route requests</text>
+  <text x="895" y="255" class="small">shared storage</text>
+  <text x="700" y="375" class="small">database access</text>
+  <text x="540" y="390" class="small">reads/writes</text>
+
+  <rect x="110" y="300" width="190" height="90" rx="10" class="box"/>
+  <text x="205" y="335" text-anchor="middle" class="label">Public subnets</text>
+  <text x="205" y="360" text-anchor="middle" class="small">ALB + NAT</text>
+
+  <rect x="110" y="430" width="190" height="90" rx="10" class="box"/>
+  <text x="205" y="465" text-anchor="middle" class="label">Private app subnets</text>
+  <text x="205" y="490" text-anchor="middle" class="small">EC2 + EFS mount targets</text>
+
+  <rect x="950" y="430" width="170" height="90" rx="10" class="box"/>
+  <text x="1035" y="465" text-anchor="middle" class="label">Private DB subnets</text>
+  <text x="1035" y="490" text-anchor="middle" class="small">Aurora cluster</text>
+
+  <path d="M300 350 L390 430" class="arrow"/>
+  <path d="M300 475 L390 475" class="arrow"/>
+  <path d="M650 475 L950 475" class="arrow"/>
+</svg>
